@@ -1,6 +1,8 @@
 package gorm
 
-import "context"
+import (
+	"context"
+)
 
 type Statement struct {
 	*DB
@@ -9,6 +11,7 @@ type Statement struct {
 
 type Config struct {
 	Dialector
+	Conn ConnPool
 }
 
 type DB struct {
