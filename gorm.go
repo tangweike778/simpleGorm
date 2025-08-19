@@ -11,7 +11,8 @@ type Statement struct {
 
 type Config struct {
 	Dialector
-	Conn ConnPool
+	Conn      ConnPool
+	callbacks *callbacks
 }
 
 type DB struct {
@@ -21,12 +22,18 @@ type DB struct {
 	Statement    *Statement
 }
 
+func (db *DB) Callback() *callbacks {
+	return db.callbacks
+}
+
 func Open(dialector Dialector) (db *DB, err error) {
 	config := &Config{}
 
 	if config.Dialector == nil {
 		config.Dialector = dialector
 	}
+
+	initializeCallbacks(db)
 
 	if config.Dialector != nil {
 		if err := config.Dialector.Initialize(db); err != nil {

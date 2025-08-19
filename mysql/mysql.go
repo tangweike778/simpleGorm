@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	gorm "simpleGorm"
+	"simpleGorm/callbacks"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -20,6 +21,17 @@ type Dialector struct {
 	*Config
 }
 
+var (
+	// CreateClauses create clauses
+	CreateClauses = []string{"INSERT", "VALUES", "ON CONFLICT"}
+	// QueryClauses query clauses
+	QueryClauses = []string{}
+	// UpdateClauses update clauses
+	UpdateClauses = []string{"UPDATE", "SET", "WHERE", "ORDER BY", "LIMIT"}
+	// DeleteClauses delete clauses
+	DeleteClauses = []string{"DELETE", "FROM", "WHERE", "ORDER BY", "LIMIT"}
+)
+
 func (d Dialector) Initialize(db *gorm.DB) error {
 	if d.DriverName == "" {
 		d.DriverName = defaultDriver
@@ -35,7 +47,15 @@ func (d Dialector) Initialize(db *gorm.DB) error {
 		}
 	}
 
-	//
+	// register callbacks
+	callbackConfig := &callbacks.Config{
+		CreateClauses: CreateClauses,
+		QueryClauses:  QueryClauses,
+		UpdateClauses: UpdateClauses,
+		DeleteClauses: DeleteClauses,
+	}
+
+	callbacks.RegisterDefaultCallbacks(db, callbackConfig)
 
 	return nil
 }
