@@ -24,7 +24,17 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	}
 
 	createCallback := db.Callback().Create()
-	createCallback.Register()
+	createCallback.Register("gorm:create", Create(config))
+}
+
+// Create create hook
+func Create(config *Config) func(*gorm.DB) {
+	return func(db *gorm.DB) {
+		if db.Statement.SQL.Len() == 0 {
+			db.Statement.SQL.Grow(180)
+			db.Statement.AddClauseIfNotExists()
+		}
+	}
 }
 
 type Config struct {

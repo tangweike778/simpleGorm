@@ -10,11 +10,7 @@ func initializeCallbacks(db *DB) *callbacks {
 
 type callback struct {
 	name      string
-	before    string
-	after     string
-	remove    bool
 	replace   bool
-	match     func(*DB) bool
 	handler   func(*DB)
 	processor *processor
 }
@@ -39,7 +35,18 @@ func (p *processor) Register(name string, fn func(*DB)) error {
 }
 
 func (p *processor) complie() error {
+	var err error
+	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
+		return err
+	}
+	return nil
+}
 
+func sortCallbacks(c []*callback) (fns []func(*DB), err error) {
+	for _, item := range c {
+		fns = append(fns, item.handler)
+	}
+	return
 }
 
 func (c *callback) Register(name string, fn func(*DB)) error {
