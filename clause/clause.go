@@ -27,7 +27,24 @@ type Clause struct {
 	//Builder    ClauseBuilder
 }
 
+// Build build clause
+func (c Clause) Build(builder Builder) {
+	if c.Expression != nil {
+		if c.Name != "" {
+			builder.WriteString(c.Name)
+			builder.WriteByte(' ')
+		}
+
+		c.Expression.Build(builder)
+	}
+}
+
 // Table quote with name
 type Table struct {
 	Name string
+}
+
+type Column struct {
+	Table string
+	Name  string
 }

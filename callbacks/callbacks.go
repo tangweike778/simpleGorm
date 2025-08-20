@@ -1,6 +1,11 @@
 package callbacks
 
-import gorm "simpleGorm"
+import (
+	"reflect"
+	gorm "simpleGorm"
+	"simpleGorm/clause"
+	"simpleGorm/schema"
+)
 
 var (
 	createClauses = []string{"INSERT", "VALUES", "ON CONFLICT"}
@@ -32,9 +37,78 @@ func Create(config *Config) func(*gorm.DB) {
 	return func(db *gorm.DB) {
 		if db.Statement.SQL.Len() == 0 {
 			db.Statement.SQL.Grow(180)
-			db.Statement.AddClauseIfNotExists()
+			db.Statement.AddClauseIfNotExists(clause.Insert{})
+			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+			db.Statement.Build(db.Statement.BuildClauses...)
+		}
+
+		result, err := db.Statement.Conn.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+		if err != nil {
+			db.AddError(err)
+			return
+		}
+		db.RowsAffected, _ = result.RowsAffected()
+
+		var (
+			pkField *schema.Field
+		)
+		insertID, err := result.LastInsertId()
+		insertOk := err == nil && insertID > 0
+		if !insertOk {
+			return
+		}
+
+		if db.Statement.Schema != nil {
+			if db.Statement.Schema.PrioritizedPrimaryField == nil || !db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
+				return
+			}
+			pkField = db.Statement.Schema.PrioritizedPrimaryField
+		}
+
+		if pkField == nil {
+			return
+		}
+
+		switch db.Statement.ReflectValue.Kind() {
+		case reflect.Struct:
+			_, isZero := pkField.ValueOf(db.Statement.Context, db.Statement.ReflectValue)
+			if isZero {
+				db.AddError(pkField.Set(db.Statement.Context, db.Statement.ReflectValue, insertID))
+			}
 		}
 	}
+}
+
+func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
+	selectColumns, _ := stmt.SelectAndOmitColumns(true, false)
+	var isZero bool
+	values = clause.Values{Columns: make([]clause.Column, 0, len(stmt.Schema.DBNames))}
+	for _, dbName := range stmt.Schema.DBNames {
+		if field := stmt.Schema.FieldsByDBName[dbName]; !field.HasDefaultValue {
+			if v, ok := selectColumns[dbName]; ok && v {
+				values.Columns = append(values.Columns, clause.Column{Name: dbName})
+			}
+		}
+	}
+
+	values.Values = [][]interface{}{make([]interface{}, len(values.Columns))}
+	for idx, column := range values.Columns {
+		field := stmt.Schema.FieldsByDBName[column.Name]
+		if values.Values[0][idx], isZero = field.ValueOf(stmt.Context, stmt.ReflectValue); isZero {
+			if field.DefaultValueInterface != nil {
+				values.Values[0][idx] = field.DefaultValueInterface
+			}
+		} else {
+			values.Values[0][idx], _ = field.ValueOf(stmt.Context, stmt.ReflectValue)
+		}
+	}
+
+	//for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
+	//	if v, ok := selectColumns[field.DBName]; (ok && v) || field.DefaultValueInterface == nil {
+	//		if rv
+	//	}
+	//}
+	return values
 }
 
 type Config struct {

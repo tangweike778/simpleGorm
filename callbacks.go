@@ -1,5 +1,10 @@
 package gorm
 
+import (
+	"errors"
+	"simpleGorm/schema"
+)
+
 func initializeCallbacks(db *DB) *callbacks {
 	return &callbacks{
 		processors: map[string]*processor{
@@ -40,6 +45,21 @@ func (p *processor) complie() error {
 		return err
 	}
 	return nil
+}
+
+func (p *processor) Execute(db *DB) *DB {
+	stmt := db.Statement
+	if stmt.Dest != nil {
+		if err := stmt.Parse(stmt.Dest); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType)) {
+			db.AddError(err)
+		}
+	}
+
+	for _, f := range p.fns {
+		f(db)
+	}
+
+	return db
 }
 
 func sortCallbacks(c []*callback) (fns []func(*DB), err error) {

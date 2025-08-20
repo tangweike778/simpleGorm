@@ -10,7 +10,9 @@ func (insert Insert) Name() string {
 
 func (insert Insert) Build(builder Builder) {
 	builder.WriteString("INTO ")
-	if
+	if insert.Table.Name != "" {
+		builder.WriteQuoted(insert.Table)
+	}
 }
 
 func (insert Insert) MergeClause(clause *Clause) {
