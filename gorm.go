@@ -108,7 +108,7 @@ func (stmt *Statement) QuetoTo(writer clause.Writer, field interface{}) {
 	//}
 }
 
-func (stmt *Statement) Parse(value interface{}) interface{} {
+func (stmt *Statement) Parse(value interface{}) error {
 	return stmt.ParseWithSpecialTableName(value, "")
 }
 
