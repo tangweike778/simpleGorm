@@ -132,10 +132,9 @@ type Config struct {
 
 type DB struct {
 	*Config
-	Error          error
-	RowsAffected   int64
-	Statement      *Statement
-	NamingStrategy schema.Namer
+	Error        error
+	RowsAffected int64
+	Statement    *Statement
 }
 
 func (db *DB) Callback() *callbacks {
@@ -168,10 +167,12 @@ func Open(dialector Dialector) (db *DB, err error) {
 		config.NamingStrategy = schema.NamingStrategy{IdentifierMaxLength: 64}
 	}
 
-	initializeCallbacks(db)
+	db = &DB{Config: config}
+
+	db.callbacks = initializeCallbacks(db)
 
 	if config.Dialector != nil {
-		if err := config.Dialector.Initialize(db); err != nil {
+		if err = config.Dialector.Initialize(db); err != nil {
 			return
 		}
 	}
@@ -179,6 +180,7 @@ func Open(dialector Dialector) (db *DB, err error) {
 	db.Statement = &Statement{
 		DB:      db,
 		Context: context.Background(),
+		Clauses: map[string]clause.Clause{},
 	}
 	return
 }
