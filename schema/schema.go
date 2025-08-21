@@ -48,6 +48,7 @@ func (s Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		PrimaryKey:        utils.CheckTruth(tagSetting["PRIMARYKEY"], tagSetting["PRIMARY_KEY"]),
 		FieldType:         fieldStruct.Type,
 		IndirectFieldType: fieldStruct.Type,
+		StructField:       fieldStruct,
 	}
 
 	fieldValue := reflect.New(field.IndirectFieldType)
