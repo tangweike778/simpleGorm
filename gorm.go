@@ -113,7 +113,7 @@ func (stmt *Statement) Parse(value interface{}) error {
 }
 
 func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
-	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
+	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
 			stmt.Table = tables[1]
 		}
@@ -124,16 +124,18 @@ func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTable
 
 type Config struct {
 	Dialector
-	Conn      ConnPool
-	callbacks *callbacks
-	NowFunc   func() time.Time
+	Conn           ConnPool
+	callbacks      *callbacks
+	NowFunc        func() time.Time
+	NamingStrategy schema.Namer
 }
 
 type DB struct {
 	*Config
-	Error        error
-	RowsAffected int64
-	Statement    *Statement
+	Error          error
+	RowsAffected   int64
+	Statement      *Statement
+	NamingStrategy schema.Namer
 }
 
 func (db *DB) Callback() *callbacks {
@@ -160,6 +162,10 @@ func Open(dialector Dialector) (db *DB, err error) {
 
 	if config.NowFunc == nil {
 		config.NowFunc = func() time.Time { return time.Now().Local() }
+	}
+
+	if config.NamingStrategy == nil {
+		config.NamingStrategy = schema.NamingStrategy{IdentifierMaxLength: 64}
 	}
 
 	initializeCallbacks(db)

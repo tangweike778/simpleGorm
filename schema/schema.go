@@ -6,7 +6,6 @@ import (
 	"go/ast"
 	"reflect"
 	"strings"
-	"sync"
 
 	"gorm.io/gorm/utils"
 )
@@ -97,7 +96,7 @@ type Namer interface {
 	ColumnName(table, column string) string
 }
 
-func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+func ParseWithSpecialTableName(dest interface{}, namer Namer, specialTableName string) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
