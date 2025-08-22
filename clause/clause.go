@@ -42,9 +42,11 @@ func (c Clause) Build(builder Builder) {
 // Table quote with name
 type Table struct {
 	Name string
+	Raw  bool
 }
 
 type Column struct {
 	Table string
 	Name  string
+	Raw   bool
 }

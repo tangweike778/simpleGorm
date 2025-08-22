@@ -75,14 +75,25 @@ func (stmt *Statement) Build(clauses ...string) {
 	}
 }
 
-func (stmt *Statement) WriteQuoted(field interface{}) {
-	//TODO implement me
-	panic("implement me")
+func (stmt *Statement) WriteQuoted(value interface{}) {
+	stmt.QuoteTo(&stmt.SQL, value)
 }
 
-func (stmt *Statement) AddVar(writer clause.Writer, i ...interface{}) {
-	//TODO implement me
-	panic("implement me")
+func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
+	for idx, v := range vars {
+		if idx > 0 {
+			writer.WriteByte(',')
+		}
+
+		switch v := v.(type) {
+		default:
+			switch rv := reflect.ValueOf(v); rv.Kind() {
+			default:
+				stmt.Vars = append(stmt.Vars, v)
+				stmt.DB.Dialector.BindVarTo(writer, stmt, v)
+			}
+		}
+	}
 }
 
 func (stmt *Statement) AddError(err error) error {
@@ -98,16 +109,6 @@ func (stmt *Statement) WriteString(s string) (int, error) {
 	return stmt.SQL.WriteString(s)
 }
 
-func (stmt *Statement) QuetoTo(writer clause.Writer, field interface{}) {
-	//write := func(raw bool, str string) {
-	//	if raw {
-	//		writer.WriteString(str)
-	//	} else {
-	//		stmt.DB.Dialector.QuoteTo(writer, str)
-	//	}
-	//}
-}
-
 func (stmt *Statement) Parse(value interface{}) error {
 	return stmt.ParseWithSpecialTableName(value, "")
 }
@@ -120,6 +121,29 @@ func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTable
 		stmt.Table = stmt.Schema.Table
 	}
 	return err
+}
+
+func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
+	write := func(raw bool, str string) {
+		if raw {
+			writer.WriteString(str)
+		} else {
+			stmt.DB.Dialector.QuoteTo(writer, str)
+		}
+	}
+
+	switch v := field.(type) {
+	case clause.Table:
+		if v.Name == clause.CurrentTable {
+			write(v.Raw, stmt.Table)
+		}
+	case clause.Column:
+		if v.Table != "" {
+			write(v.Raw, v.Table)
+			writer.WriteByte('.')
+		}
+		write(v.Raw, v.Name)
+	}
 }
 
 type Config struct {

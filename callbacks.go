@@ -2,6 +2,8 @@ package gorm
 
 import (
 	"errors"
+	"log"
+	"reflect"
 	"simpleGorm/schema"
 )
 
@@ -49,7 +51,13 @@ func (p *processor) complie() error {
 
 func (p *processor) Execute(db *DB) *DB {
 	stmt := db.Statement
+	if len(stmt.BuildClauses) == 0 {
+		log.Printf("%v", p.Clauses)
+		stmt.BuildClauses = p.Clauses
+	}
+
 	if stmt.Dest != nil {
+		stmt.ReflectValue = reflect.ValueOf(stmt.Dest)
 		if err := stmt.Parse(stmt.Dest); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType)) {
 			db.AddError(err)
 		}

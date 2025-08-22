@@ -17,6 +17,8 @@ func (values Values) Build(builder Builder) {
 			builder.WriteQuoted(column)
 		}
 		builder.WriteByte(')')
+
+		builder.WriteString(" VALUES ")
 		for idx, value := range values.Values {
 			if idx > 0 {
 				builder.WriteByte(',')

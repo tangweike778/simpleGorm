@@ -1,5 +1,13 @@
 package clause
 
+const (
+	CurrentTable string = "~~~ct~~~"
+)
+
+var (
+	currentTable = Table{Name: CurrentTable}
+)
+
 type Insert struct {
 	Table Table
 }
@@ -12,6 +20,8 @@ func (insert Insert) Build(builder Builder) {
 	builder.WriteString("INTO ")
 	if insert.Table.Name != "" {
 		builder.WriteQuoted(insert.Table)
+	} else {
+		builder.WriteQuoted(currentTable)
 	}
 }
 

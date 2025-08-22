@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"log"
 	"reflect"
 	gorm "simpleGorm"
 	"simpleGorm/clause"
@@ -30,6 +31,7 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 
 	createCallback := db.Callback().Create()
 	createCallback.Register("gorm:create", Create(config))
+	createCallback.Clauses = config.CreateClauses
 }
 
 // Create create hook
@@ -42,6 +44,7 @@ func Create(config *Config) func(*gorm.DB) {
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
+		log.Printf("sql: %v", db.Statement.SQL.String())
 		result, err := db.Statement.Conn.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 		if err != nil {
 			db.AddError(err)
@@ -80,12 +83,12 @@ func Create(config *Config) func(*gorm.DB) {
 }
 
 func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
-	selectColumns, _ := stmt.SelectAndOmitColumns(true, false)
+	selectColumns, restricted := stmt.SelectAndOmitColumns(true, false)
 	var isZero bool
 	values = clause.Values{Columns: make([]clause.Column, 0, len(stmt.Schema.DBNames))}
 	for _, dbName := range stmt.Schema.DBNames {
 		if field := stmt.Schema.FieldsByDBName[dbName]; !field.HasDefaultValue {
-			if v, ok := selectColumns[dbName]; ok && v {
+			if v, ok := selectColumns[dbName]; (ok && v) || (!ok && !restricted) {
 				values.Columns = append(values.Columns, clause.Column{Name: dbName})
 			}
 		}

@@ -34,7 +34,7 @@ type Field struct {
 	ReflectValueOf        func(context.Context, reflect.Value) reflect.Value
 }
 
-func (f Field) setupValuerAndSetter() {
+func (f *Field) setupValuerAndSetter() {
 	fieldIndex := f.StructField.Index[0]
 	switch {
 	case len(f.StructField.Index) == 1 && fieldIndex >= 0:
